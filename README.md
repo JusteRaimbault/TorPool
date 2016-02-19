@@ -1,4 +1,15 @@
 # TorPool
 
-use it as you want - under your own responsibility.
-(disclaimer : not initially designed as a basis for a torhammer... ^^)
+## Description
+
+java application managing a pool of `tor` instances in parallel, allowing to switch IP rapidly on demand from an external app (api not designed to use a large number of tor ip at the same time, even if it can be done).
+
+
+## Usage
+
+Run the pool in background : `java -jar torpool.jar Nthreads` [note : tor data is stored in `.tor_tmp` folder where the pool is launched]
+
+The java API class that you can embed in your app provides a `setupTorPoolConnexion()` method to establish connexion with the pool (and sets up localhost proxy with first tor task port) ; the `switchPort()` method allows then to change tor port (and thus current IP) on demand (e.g. to be triggered when IP is blocked by a crawled victim).
+
+No api for other languages ; can eventually be done depending on special needs.
+
