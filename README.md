@@ -1,5 +1,7 @@
 # TorPool
 
+[![DOI](https://zenodo.org/badge/18922/JusteRaimbault/TorPool.svg)](https://zenodo.org/badge/latestdoi/18922/JusteRaimbault/TorPool)
+
 ## Description
 
 java application managing a pool of `tor` instances in parallel, allowing to switch IP rapidly on demand from an external app (api not designed to use a large number of tor ip at the same time, even if it can be done).
