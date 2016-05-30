@@ -10,6 +10,7 @@ java application managing a pool of `tor` instances in parallel, allowing to swi
 ## Usage
 
 Run the pool in background : `java -jar torpool.jar Nthreads` [note : tor data is stored in `.tor_tmp` folder where the pool is launched]
+`tor` command is assumed installed ; you can specify an alternative tor command by putting it in `conf/torcommand` file.
 
 The java API class that you can embed in your app provides a `setupTorPoolConnexion()` method to establish connexion with the pool (and sets up localhost proxy with first tor task port) ; the `switchPort()` method allows then to change tor port (and thus current IP) on demand (e.g. to be triggered when IP is blocked by a crawled victim).
 
