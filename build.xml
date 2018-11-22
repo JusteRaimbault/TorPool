@@ -20,8 +20,9 @@
   </path>
 	-->
   <target name="compile" description="compile the source " >
-	    <javac srcdir="src" destdir="${build}"/>
-	  </target>
+	  <mkdir dir="${build}"/>
+	  <javac srcdir="src" destdir="${build}"/>
+  </target>
 
 
   <target name="jar" depends="compile">

@@ -73,14 +73,15 @@ public class TorPool {
 	/**
 	 * Start a new pool of tor threads given a port range (included) and thread number
 	 *
-	 * @param r1
-	 * @param r2
+	 * @param p1
+	 * @param p2
 	 */
 	public static void initPool(int p1,int p2,int nThreads){
 
 		System.setProperty("socksProxyHost", "127.0.0.1");
 
-		//create .tor_tmp dir if does not exists
+		// remove old data
+		try{Runtime.getRuntime().exec("rm -rf .tor_tmp").waitFor();}catch(Exception e){e.printStackTrace();}
 		(new File(".tor_tmp")).mkdir();
 
 		// remove old ports file
@@ -99,7 +100,8 @@ public class TorPool {
 		for(int k=0;k<nThreads;k++){
 			TorThread t = new TorThread();
 			torthreads.addLast(t);
-			registerThread(t);
+			// registration is done at confirmed setup !
+			//registerThread(t);
 		}
 
 	}
@@ -198,7 +200,9 @@ public class TorPool {
 		 */
 
 		int sleepingTime = initialThreadSleepingTime*torthreads.size();
-		for(int t=0;t<torthreads.size();t++){Thread.sleep(initialThreadSleepingTime);System.out.println("Sleeping : rem. "+(sleepingTime-t*initialThreadSleepingTime)/1000+"sec");}
+		for(int t=0;t<torthreads.size();t++){
+			Thread.sleep(initialThreadSleepingTime);
+			System.out.println("Sleeping : rem. "+(sleepingTime-t*initialThreadSleepingTime)/1000+"sec");}
 		}catch(Exception e){e.printStackTrace();}
 	}
 
@@ -207,9 +211,13 @@ public class TorPool {
 	 * Stop the all pool.
 	 */
 	public static void stopPool(){
-		for(TorThread t:torthreads){
-			t.cleanStop();
-		}
+
+		// tor threads already catch the stop
+		/*for(TorThread t:torthreads){
+			t.cleanStop(false);
+		}*/
+		try{Runtime.getRuntime().exec("rm -rf .tor_tmp").waitFor();}catch(Exception e){e.printStackTrace();}
+
 	}
 
 
@@ -273,8 +281,8 @@ public class TorPool {
 				Runtime.getRuntime().addShutdownHook(new Thread() {
 			        @Override
 			            public void run() {
-			                System.out.println("Exiting cleanly...");
-			                stopPool();
+			        	System.out.println("Exiting cleanly...");
+			        	stopPool();
 			            }
 			    });
 

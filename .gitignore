@@ -3,4 +3,6 @@
 # ignore temp dir with tor data
 .tor_tmp
 
+.idea
+*.iml
 
