@@ -40,7 +40,7 @@ public class TorPoolManager {
 	/**
 	 * Checks if a pool is currently running, and setup initial port correspondingly.
 	 */
-	public static void setupTorPoolConnexion() throws Exception {
+	public static void setupTorPoolConnexion(boolean portexclusivity) throws Exception {
 		
 		Log.stdout("Setting up TorPool connection...");
 		
@@ -52,7 +52,7 @@ public class TorPoolManager {
 		
 		try{
 			//changePortFromFile(new BufferedReader(new FileReader(new File(".tor_tmp/ports"))));
-			switchPort();
+			switchPort(portexclusivity);
 		}catch(Exception e){e.printStackTrace();}
 		
 		//showIP();

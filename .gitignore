@@ -1,3 +1,5 @@
+.DS_Store
+
 /bin/
 
 # ignore temp dir with tor data
