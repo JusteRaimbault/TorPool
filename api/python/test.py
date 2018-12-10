@@ -5,6 +5,7 @@ import requests
 
 
 pool = TorPoolManager()
+pool.switchPort(True)
 
 while True:
     result = requests.get('http://ipecho.net/plain',proxies=pool.proxies())
