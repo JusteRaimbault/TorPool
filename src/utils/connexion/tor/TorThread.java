@@ -76,24 +76,22 @@ public class TorThread extends Thread {
 
 			// must run in background
 			// Really necessary ?
-			// FIXME test that
-			//new StreamDisplayer(r).start();
+			// FIXME test that + memory leaks ?
+			// the Stream displayer registers the port when bootstrap is ok
+			new StreamDisplayer(r,port).start();
 
-			String currentLine=r.readLine();
+			//String currentLine=r.readLine();
 			while(true){
-				System.out.println((new Date()).toString()+currentLine);
-
-				if(currentLine.contains("Bootstrapped 100")){
-					System.out.println("Appending port "+port+" to .tor_tmp/ports");
-					appendWithLock(new Integer(port).toString(),".tor_tmp/ports",".tor_tmp/lock");
-				}
-
-				currentLine = r.readLine();
+				//System.out.println((new Date()).toString()+currentLine);
+				//currentLine = r.readLine();
 
 				sleep(1000);
 				
 				//check if the Thread has to be stopped
-				if((new File(".tor_tmp/kill"+port)).exists()){running = false;}
+				if((new File(".tor_tmp/kill"+port)).exists()){
+					System.out.println("Detected kill file for port "+port);
+					running = false;
+				}
 				
 				if(!running){
 					cleanStop(true);
@@ -114,9 +112,8 @@ public class TorThread extends Thread {
 	 */
 	public void cleanStop(boolean withNew){
 		try{
+			// running should already be at false
 			running=false;
-			//opens the lock
-			//(new File(".tor_tmp/lock")).createNewFile();
 			try{
 				//delete stopping signal
 				try{(new File(".tor_tmp/kill"+port)).delete();}catch(Exception e){}
@@ -143,20 +140,11 @@ public class TorThread extends Thread {
 			
 			//launch a new thread to replace this one if required
 			if(withNew){
-				TorPool.newThread();
+				TorPool.newThread(true);
 			}
-			
-			// no need to remove pidfile, deleted at a clean tor thread stop
-			//try{new File(".tor_tmp/.torpid"+port).delete();}catch(Exception e){e.printStackTrace();}
-			
-			// unlock the pool action
-			// FIXME not needed here ?
-			//(new File(".tor_tmp/lock")).delete();
-			
+
 		}catch(Exception e){
 			e.printStackTrace();
-			// delete the lock however in case of an issue
-			//(new File(".tor_tmp/lock")).delete();
 		}
 	}
 
@@ -167,7 +155,8 @@ public class TorThread extends Thread {
 	 * @param file
 	 * @param lock
 	 */
-	private static void removeInFileWithLock(String s,String file,String lock){
+	public static void removeInFileWithLock(String s,String file,String lock){
+		//System.out.println("removing from file port "+s);
 		try{
 			boolean locked = true;
 			while(locked){
@@ -177,15 +166,22 @@ public class TorThread extends Thread {
 			}
 			File lockfile = new File(".tor_tmp/lock");lockfile.createNewFile();
 			BufferedReader r = new BufferedReader(new FileReader(new File(file)));
+
 			LinkedList<String> newcontent = new LinkedList<>();
 			String currentline = r.readLine();
 			while(currentline!=null){
-				if(currentline.replace("\n","")!=s){newcontent.add(currentline);}
+				if(Integer.parseInt(currentline.replace("\n",""))!=Integer.parseInt(s)){
+					newcontent.add(currentline);
+				}
+				currentline=r.readLine();
 			}
+
 			BufferedWriter w = new BufferedWriter(new FileWriter(new File(file)));
 			for(String remp:newcontent){
+				//System.out.println(remp);
 				w.write(remp);w.newLine();
 			}
+			w.close();
 			// unlock the dir
 			lockfile.delete();
 		}catch(Exception e){e.printStackTrace();}
@@ -199,7 +195,7 @@ public class TorThread extends Thread {
 	 * @param file
 	 * @param lock
 	 */
-	private static void appendWithLock(String s,String file,String lock){
+	public static void appendWithLock(String s,String file,String lock){
 		try{
 			boolean locked = (new File(lock)).exists();
 			while(locked){

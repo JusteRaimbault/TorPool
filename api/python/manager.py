@@ -1,6 +1,12 @@
 from pathlib import Path
 import time
 
+
+#'
+#' Note : the application must be secure itself when using ports, the torpool can not manage external use and put the port back
+#'  e.g. in case of a failure
+#'
+
 class TorPoolManager():
 
     port = 0
@@ -37,7 +43,7 @@ class TorPoolManager():
         lock = Path(lockfile)
         lock.touch()
         ports = open(portfile,'r')
-        newcontent = [l.replace('\n','') for l in ports.readlines() if not l.startsWith(s)]
+        newcontent = [l.replace('\n','') for l in ports.readlines() if not l.startswith(s)]
         ports = open(portfile,'w')
         for l in newcontent:
             ports.write(l+'\n')
@@ -59,12 +65,16 @@ class TorPoolManager():
     #'
     #' Primitive to get current socks proxy
     def proxies(self):
-         return({'http':'socks5://localhost:'+str(self.port)})
+        print('Proxy address : socks5://127.0.0.1:'+str(self.port))
+        return({'http':'socks5://127.0.0.1:'+str(self.port)})
 
     #'
     #' Switch the port
     def switchPort(self,portExclusivity):
+        print('Switching port from port '+str(self.port))
+
         if self.port != 0:
+            print('Killing task for port '+str(self.port))
             killsignal = Path('.tor_tmp/kill'+self.port)
             killsignal.touch()
 
@@ -73,9 +83,9 @@ class TorPoolManager():
         newPort = ""
         while len(newPort)<4:
             newPort=TorPoolManager.readLineWithLock(portfile,lockfile)
-            print(newPort)
+            #print(newPort)
         print('Switching to new port: '+newPort)
-        self.port = newPort
+        self.port = newPort.replace('\n','').replace('\r','')
 
         # FIXME : rq : if there is no port exclusivity, process can be killed by an other ?
         # should always use with exclusivity for now

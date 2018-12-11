@@ -97,12 +97,7 @@ public class TorPool {
 		}
 
 		// create the threads
-		for(int k=0;k<nThreads;k++){
-			TorThread t = new TorThread();
-			torthreads.addLast(t);
-			// registration is done at confirmed setup !
-			//registerThread(t);
-		}
+		for(int k=0;k<nThreads;k++){ newThread(false);}
 
 	}
 
@@ -110,57 +105,25 @@ public class TorPool {
 
 
 
-	/**
-	 * Switch the current port, by taking thread from the list, testing it and setting it if needed.
-	 * RQ : no testing ? -> equivalent, will be tested at first request, thrown if not ok.
-	 * Kills the current thread ; replaces it by a new one to keep a constant number of threads.
-	 * [0.5 sucess rate, may need many ?]
-	 *
-	 */
-	/*public static void switchPort(boolean createNew){
-
-		try{
-			// current thread may be null when called at initialization.
-			if(currentThread != null){
-				currentThread.cleanStop();
-				// create the new
-				if(createNew){
-					TorThread t = new TorThread();
-					torthreads.addLast(t);
-					t.start();
-					Thread.sleep(initialThreadSleepingTime);
-				}
-
-			}
-			// pick the first, list never empty
-			currentThread = torthreads.pollFirst();
-
-			System.out.println("Switching request port to : "+currentThread.port);
-
-			System.setProperty("socksProxyPort",new Integer(currentThread.port).toString());
-
-			// display ip : should be deleted for perf reasons
-			BufferedReader r = new BufferedReader(new InputStreamReader(new URL("http://ipecho.net/plain").openConnection().getInputStream()));
-			String currentLine=r.readLine();
-			while(currentLine!= null){System.out.println(currentLine);currentLine=r.readLine();}
-
-		}catch(Exception e){e.printStackTrace();}
-
-	}
-	*/
 
 
 	/**
 	 * Start a new thread.
 	 *
 	 */
-	public static void newThread(){
+	public static void newThread(boolean withStart){
 		try{
 			TorThread t = new TorThread();
 			torthreads.addLast(t);
-			registerThread(t);
-			t.start();
-			Thread.sleep(initialThreadSleepingTime);
+
+			// registration is done at confirmed setup !
+			//registerThread(t);
+
+			if(withStart) {
+				t.start();
+				Thread.sleep(initialThreadSleepingTime);
+			}
+
 		}catch(Exception e){e.printStackTrace();}
 	}
 
@@ -170,14 +133,14 @@ public class TorPool {
 	 *
 	 * @param t
 	 */
-	public static void registerThread(TorThread t){
+	/*public static void registerThread(TorThread t){
 		//The TorPool is assumed to be used with TorPoolManager class, hence no pb on locking/concurrency on port file
 		try{
 			BufferedWriter w = new BufferedWriter(new FileWriter(new File(".tor_tmp/ports"),true));
 			w.write(new Integer(t.port).toString());w.newLine();
 			w.close();
 		}catch(Exception e){System.out.println("Error while registring TorThread : ");e.printStackTrace();}
-	}
+	}*/
 
 
 	/**
@@ -221,46 +184,6 @@ public class TorPool {
 	}
 
 
-
-	/**
-	 * force stop for pid range
-	 * (when pid file fails)
-	 *
-	 * @param pid1 start pid
-	 * @param pid2 end pid
-	 */
-	/*
-	public static void forceStopPID(int pid1,int pid2){
-		for(int pid=pid1;pid<=pid2;pid++){
-			try{
-			System.out.println("sending SIGTERM to tor... PID : "+pid);
-			Process p=Runtime.getRuntime().exec("kill -SIGTERM "+pid);p.waitFor();
-			}catch(Exception e){e.printStackTrace();}
-		}
-
-	}
-*/
-
-
-	/**
-	 * Forcing stop Torpool through PID files.
-	 *
-	 * @param p1 start port
-	 * @param p2 end port
-	 */
-	/*public static void forceStop(int p1,int p2){
-		for(int port=p1;port<=p2;port++){
-			try{
-			String pid = new BufferedReader(new FileReader(new File("tmp/.torpid"+port))).readLine();
-			System.out.println("sending SIGTERM to tor... PID : "+pid);
-			Process p=Runtime.getRuntime().exec("kill -SIGTERM "+pid);p.waitFor();
-			new File("tmp/.torpid"+port).delete();
-			}catch(Exception e){e.printStackTrace();}
-		}
-
-	}
-	*/
-
 	/**
 	 * Pool launcher, to be used from the command line.
 	 *
@@ -295,6 +218,89 @@ public class TorPool {
 			catch(Exception e){e.printStackTrace();}
 		}
 	}
+
+
+
+	/**
+	 * Switch the current port, by taking thread from the list, testing it and setting it if needed.
+	 * RQ : no testing ? -> equivalent, will be tested at first request, thrown if not ok.
+	 * Kills the current thread ; replaces it by a new one to keep a constant number of threads.
+	 * [0.5 sucess rate, may need many ?]
+	 *
+	 */
+	/*public static void switchPort(boolean createNew){
+
+		try{
+			// current thread may be null when called at initialization.
+			if(currentThread != null){
+				currentThread.cleanStop();
+				// create the new
+				if(createNew){
+					TorThread t = new TorThread();
+					torthreads.addLast(t);
+					t.start();
+					Thread.sleep(initialThreadSleepingTime);
+				}
+
+			}
+			// pick the first, list never empty
+			currentThread = torthreads.pollFirst();
+
+			System.out.println("Switching request port to : "+currentThread.port);
+
+			System.setProperty("socksProxyPort",new Integer(currentThread.port).toString());
+
+			// display ip : should be deleted for perf reasons
+			BufferedReader r = new BufferedReader(new InputStreamReader(new URL("http://ipecho.net/plain").openConnection().getInputStream()));
+			String currentLine=r.readLine();
+			while(currentLine!= null){System.out.println(currentLine);currentLine=r.readLine();}
+
+		}catch(Exception e){e.printStackTrace();}
+
+	}
+	*/
+
+
+
+	/**
+	 * force stop for pid range
+	 * (when pid file fails)
+	 *
+	 * @param pid1 start pid
+	 * @param pid2 end pid
+	 */
+	/*
+	public static void forceStopPID(int pid1,int pid2){
+		for(int pid=pid1;pid<=pid2;pid++){
+			try{
+			System.out.println("sending SIGTERM to tor... PID : "+pid);
+			Process p=Runtime.getRuntime().exec("kill -SIGTERM "+pid);p.waitFor();
+			}catch(Exception e){e.printStackTrace();}
+		}
+
+	}
+*/
+
+
+
+	/**
+	 * Forcing stop Torpool through PID files.
+	 *
+	 * @param p1 start port
+	 * @param p2 end port
+	 */
+	/*public static void forceStop(int p1,int p2){
+		for(int port=p1;port<=p2;port++){
+			try{
+			String pid = new BufferedReader(new FileReader(new File("tmp/.torpid"+port))).readLine();
+			System.out.println("sending SIGTERM to tor... PID : "+pid);
+			Process p=Runtime.getRuntime().exec("kill -SIGTERM "+pid);p.waitFor();
+			new File("tmp/.torpid"+port).delete();
+			}catch(Exception e){e.printStackTrace();}
+		}
+
+	}
+	*/
 
 
 
