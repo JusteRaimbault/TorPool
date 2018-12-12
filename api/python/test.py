@@ -17,14 +17,14 @@ while True:
         result = requests.get('http://ipecho.net/plain',proxies=pool.proxies(), timeout=10)
         print(result.text)
 
-        pdata = requests.get('https://patents.google.com/patent/US9000616B2',proxies=pool.proxies(), timeout=10)
-        try :
-            tree = html.fromstring(pdata.content)
-            if len(tree.find_class("abstract")) > 0 :
-                t = tree.find_class("abstract")[0]
-                print(t.text)
-        except Exception :
-            print('Error parsing html')
+        #pdata = requests.get('https://patents.google.com/patent/US9000616B2',proxies=pool.proxies(), timeout=10)
+        #try :
+        #    tree = html.fromstring(pdata.content)
+        #    if len(tree.find_class("abstract")) > 0 :
+        #        t = tree.find_class("abstract")[0]
+        #        print(t.text)
+        #except Exception :
+        #    print('Error parsing html')
     except Exception as e:
         print(e)
         pool.switchPort(True)

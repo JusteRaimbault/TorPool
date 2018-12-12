@@ -29,6 +29,25 @@ class TorPoolManager():
         lock.unlink()
         return(res)
 
+    #'
+    #'
+    def readAndRemoveLineWithLock(portfile,lockfile):
+        locked=True
+        while locked:
+            time.sleep(0.2)
+            lock = Path(lockfile)
+            locked = lock.is_file()
+        lock = Path(lockfile)
+        lock.touch()
+        ports = open(portfile,'r')
+        lines = ports.readlines()
+        ports = open(portfile,'w')
+        for i in range(1,len(lines)):
+             ports.write(lines[i])
+        lock.unlink()
+        return(lines[0].replace('\n',''))
+
+
 
     #'
     #' Remove a port in the locked file
@@ -83,18 +102,21 @@ class TorPoolManager():
         lockfile = '.tor_tmp/lock'
         newPort = ""
         while len(newPort)<4:
-            newPort=TorPoolManager.readLineWithLock(portfile,lockfile)
+            if portExclusivity:
+                newPort=TorPoolManager.readAndRemoveLineWithLock(portfile,lockfile)
+            else :
+                newPort=TorPoolManager.readLineWithLock(portfile,lockfile)
             #print(newPort)
         print('Switching to new port: '+newPort)
         self.port = newPort.replace('\n','').replace('\r','')
 
         # FIXME : rq : if there is no port exclusivity, process can be killed by an other ?
         # should always use with exclusivity for now
-        if portExclusivity:
-            TorPoolManager.removeInFileWithLock(newPort,portfile,lockfile)
+        #if portExclusivity:
+        #    TorPoolManager.removeInFileWithLock(newPort,portfile,lockfile)
 
     #'
     #' Release the current port (in the c ase of an exclusive use), by switching without exclusivity
     def releasePort(self):
         print('Releasing port'+str(self.port))
-        switchPort(self,False)
+        self.switchPort(False)
