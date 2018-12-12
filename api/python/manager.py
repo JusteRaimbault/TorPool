@@ -70,6 +70,7 @@ class TorPoolManager():
 
     #'
     #' Switch the port
+    #'
     def switchPort(self,portExclusivity):
         print('Switching port from port '+str(self.port))
 
@@ -91,3 +92,9 @@ class TorPoolManager():
         # should always use with exclusivity for now
         if portExclusivity:
             TorPoolManager.removeInFileWithLock(newPort,portfile,lockfile)
+
+    #'
+    #' Release the current port (in the c ase of an exclusive use), by switching without exclusivity
+    def releasePort(self):
+        print('Releasing port'+str(self.port))
+        switchPort(self,False)
