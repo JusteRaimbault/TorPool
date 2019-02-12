@@ -89,34 +89,43 @@ public class TorPoolManager {
 	 * Switch the current port to the oldest living TorThread.
 	 *   - Reads communication file -
 	 */
-	public static void switchPort(boolean portexclusivity){
-		try{
-			//send kill signal via kill file
-			// if current port is set
-			if(currentPort!=0){
-				Log.stdout("Sending kill signal for current tor thread...");
-				(new File(".tor_tmp/kill"+currentPort)).createNewFile();
-			}
+	 public static void switchPort(boolean portexclusivity){
+ 		try{
+ 			//send kill signal via kill file
+ 			// if current port is set
+ 			if(currentPort!=0){
+ 				Log.stdout("Sending kill signal for current tor thread...");
+ 				(new File(".tor_tmp/kill"+currentPort)).createNewFile();
+ 			}
 
-			String portpath = ".tor_tmp/ports";
-			String lockfile = ".tor_tmp/lock";
-			int newport = changePortFromFile(portpath,lockfile);
-			if(portexclusivity){
-				removeInFileWithLock(newport,portpath,lockfile);
-			}
+ 			String portpath = ".tor_tmp/ports";
+ 			String lockfile = ".tor_tmp/lock";
+ 			String newport = "";
 
-			// show ip to check
-			showIP();
+ 			while(newport.length()<4) {
+ 				if (portexclusivity) {
+ 					newport = readAndRemoveLineWithLock(portpath, lockfile);
+ 				} else {
+ 					newport = readLineWithLock(portpath, lockfile);
+ 				}
+ 			}
 
-		}catch(Exception e){e.printStackTrace();}
-	}
+ 			// show ip to check
+ 			showIP();
 
-	/**
-	 *
-	 * @param portpath
-	 * @param lockfile
-	 */
-	 private static String changePortFromFile(String portpath,String lockfile){
+ 			changePort(newport);
+
+ 		}catch(Exception e){e.printStackTrace();}
+ 	}
+
+ 	/**
+ 	 *
+ 	 * FIXME not checked
+ 	 *
+ 	 * @param portpath
+ 	 * @param lockfile
+ 	 */
+ 	private static String changePortFromFile(String portpath,String lockfile){
  		//String newPort = "9050";
  		String newPort = "";
 
@@ -136,6 +145,27 @@ public class TorPoolManager {
  		return(newPort);
  	}
 
+ 	/**
+ 	 *
+ 	 */
+ 	private static void changePort(String newport){
+ 		// set the new port
+ 		System.setProperty("socksProxyPort",newport);
+ 		currentPort = Integer.parseInt(newport);
+ 		Log.stdout("Current Port set to "+newport);
+ 	}
+
+	/**
+		 * Release the current port (without killing the task) -> used when in exclusivity ?
+		 */
+		public static void releasePort() {
+			Log.stdout("Releasing port "+currentPort);
+			switchPort(false);
+		}
+
+
+
+
 	/**
 	 *
 	 *
@@ -152,9 +182,37 @@ public class TorPoolManager {
 				Thread.sleep(200);
 				locked = (new File(lockfile)).exists();t++;
 			}
-			File lock = new File(".tor_tmp/lock");lock.createNewFile();
+			File lock = new File(lockfile);lock.createNewFile();
 			BufferedReader r = new BufferedReader(new FileReader(new File(portpath)));
 			res=r.readLine();
+			lock.delete();
+		}catch(Exception e){e.printStackTrace();}
+		return(res);
+	}
+
+	private static String readAndRemoveLineWithLock(String portfile,String lockfile) {
+		String res = "";
+		try {
+			boolean locked = true;
+			while (locked) {
+				Log.stdout("Waiting for lock on " + lockfile);
+				Thread.sleep(200);
+				locked = (new File(lockfile)).exists();
+			}
+			File lock = new File(lockfile);lock.createNewFile();
+			BufferedReader r = new BufferedReader(new FileReader(new File(portfile)));
+			LinkedList<String> newcontent = new LinkedList<String>();
+			String currentline = r.readLine();
+			while(currentline!=null){newcontent.add(currentline);currentline=r.readLine();}
+			r.close();
+
+			BufferedWriter w = new BufferedWriter(new FileWriter(new File(portfile)));
+			res = newcontent.removeFirst();
+			for(String remp:newcontent){
+				w.write(remp);w.newLine();
+			}
+			w.close();
+			// unlock the dir
 			lock.delete();
 		}catch(Exception e){e.printStackTrace();}
 		return(res);
@@ -169,13 +227,14 @@ public class TorPoolManager {
 				Thread.sleep(200);
 				locked = (new File(lock)).exists();
 			}
-			File lockfile = new File(".tor_tmp/lock");lockfile.createNewFile();
+			File lockfile = new File(lock);lockfile.createNewFile();
 			BufferedReader r = new BufferedReader(new FileReader(new File(file)));
 			LinkedList<String> newcontent = new LinkedList<String>();
 			String currentline = r.readLine();
 			while(currentline!=null){
-				if(currentline.replace("\n","")!=s){newcontent.add(currentline);}
+				if(currentline.replace("\n","")!=s){newcontent.add(currentline);currentline=r.readLine();}
 			}
+			r.close();
 			BufferedWriter w = new BufferedWriter(new FileWriter(new File(file)));
 			for(String remp:newcontent){
 				w.write(remp);w.newLine();
