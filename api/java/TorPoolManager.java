@@ -39,8 +39,10 @@ public class TorPoolManager {
 
 	/**
 	 * Checks if a pool is currently running, and setup initial port correspondingly.
+	 *
+	 * @param portexclusivity should the used port be removed from the list of available ports (exclusivity)
 	 */
-	public static void setupTorPoolConnexion(boolean portexclusivity) throws Exception {
+	public static void setupTorPoolConnexion(boolean portexclusivity){
 
 		Log.stdout("Setting up TorPool connection...");
 
@@ -49,18 +51,22 @@ public class TorPoolManager {
 
 		if(hasRunningPool()) {
 
+			Log.stdout("   -> running pool ok");
+
 			System.setProperty("socksProxyHost", "127.0.0.1");
 
 
 			try{
 		 		//changePortFromFile(new BufferedReader(new FileReader(new File(".tor_tmp/ports"))));
 				switchPort(portexclusivity);
-			}catch(Exception e){e.printStackTrace();}
+			}catch(Exception e){Log.stdout("Impossible to set port at initialization");e.printStackTrace();}
 
 			//showIP();
 
 			hasTorPoolConnexion = true;
 
+		}else{
+			Log.stdout("   -> no running pool, not setting socks proxy");
 		}
 	}
 
