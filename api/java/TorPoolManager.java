@@ -12,6 +12,13 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.LinkedList;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoCollection;
+import org.bson.Document;
+import static com.mongodb.client.model.Filters.*;
+
 import bibliodata.utils.Log;
 
 /**
@@ -22,19 +29,77 @@ import bibliodata.utils.Log;
  */
 public class TorPoolManager {
 
+
+	private static final String ipurl = "http://ipecho.net/plain";
+
+
 	/**
-	 * TODO : Concurrent access from diverse apps to a single pool ?
-	 * Difficult as would need listener on this side...
-	 *
+	 * Concurrent access from diverse apps to a single pool ?
+	 *   -> achieved concurrently with portexclusivity option
 	 */
 
 	/**
-	 * the port currently used.
+	 * the port currently used
 	 */
 	public static int currentPort=0;
 
-
+	/**
+	 * is there a running torpool
+	 */
 	public static boolean hasTorPoolConnexion = false;
+
+	/**
+	 * current IP
+	 */
+	public static String currentIP = "";
+
+	public static boolean mongoMode = true;
+	public static MongoClient mongoClient;
+	public static MongoDatabase mongoDatabase;
+
+	public static final String mongoHost = "127.0.0.1";
+	public static final int mongoPort = 27017;
+	public static final String mongoDB = "tor";
+	public static final String mongoCollection = "ports";
+
+	public static void initMongo() {
+		try {
+			mongoClient = new MongoClient(mongoHost, mongoPort);
+			mongoDatabase = mongoClient.getDatabase(mongoDB);
+		} catch(Exception e){
+			System.out.println("No mongo connection possible : ");
+			e.printStackTrace();
+		}
+	}
+
+	public static void closeMongo() {
+		try{
+			mongoClient.close();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	public static String getPortFromMongo(boolean exclusivity){
+		initMongo();
+		MongoCollection<Document> collection = mongoDatabase.getCollection(mongoCollection);
+		String res = "";
+		if(exclusivity){
+			Document d = collection.findOneAndDelete(exists("port"));
+			if(d.containsKey("port")){res = d.getString("port");}
+		}else{
+			FindIterable fi =collection.find();
+			if(fi.iterator().hasNext()){
+				Document d = (Document) fi.iterator().next();
+				if(d.containsKey("port")){res = d.getString("port");}
+			}
+		}
+		closeMongo();
+		return(res);
+	}
+
+
+	public static void setupTorPoolConnexion(boolean portexclusivity){setupTorPoolConnexion(portexclusivity,false);}
 
 
 	/**
@@ -42,7 +107,7 @@ public class TorPoolManager {
 	 *
 	 * @param portexclusivity should the used port be removed from the list of available ports (exclusivity)
 	 */
-	public static void setupTorPoolConnexion(boolean portexclusivity) {
+	public static void setupTorPoolConnexion(boolean portexclusivity,boolean mongoMode) {
 
 		Log.stdout("Setting up TorPool connection...");
 
@@ -68,21 +133,18 @@ public class TorPoolManager {
 
 
 	/**
-	 * Send a stop signal to the whole pool -> needed ? Yes to avoid having tasks going on running on server e.g.
+	 * Send a stop signal to the whole pool
 	 */
 	public static void closePool(){
 
 	}
 
 
-	private static void checkRunningPool() throws Exception{
-		if(!new File(".tor_tmp/ports").exists()){throw new Exception("NO RUNNING TOR POOL !"); }
-	}
-
 	public static boolean hasRunningPool() {
 		try {
 			if (new File(".tor_tmp").exists()) {
-				return (new File(".tor_tmp/ports").exists());
+				if(mongoMode) {try{initMongo();closeMongo();return(true);}catch(Exception e){return false;}}
+				else return (new File(".tor_tmp/ports").exists());
 			} else {
 				return (false);
 			}
@@ -110,9 +172,17 @@ public class TorPoolManager {
 
 			while(newport.length()<4) {
 				if (portexclusivity) {
-					newport = readAndRemoveLineWithLock(portpath, lockfile);
+					if(mongoMode){
+						newport = getPortFromMongo(true);
+					}else {
+						newport = readAndRemoveLineWithLock(portpath, lockfile);
+					}
 				} else {
-					newport = readLineWithLock(portpath, lockfile);
+					if(mongoMode) {
+						newport = getPortFromMongo(false);
+					}else {
+						newport = readLineWithLock(portpath, lockfile);
+					}
 				}
 				// add significant waiting time to avoid overcrowding
 				Thread.sleep(1000);
@@ -125,38 +195,27 @@ public class TorPoolManager {
 
 		}catch(Exception e){
 			e.printStackTrace();
-			removeLock(".tor_tmp/lock");
+			if(!mongoMode) removeLock(".tor_tmp/lock");
 		}
 	}
+
 
 	/**
-	 *
-	 * FIXME function not used
-	 *
-	 * @param portpath
-	 * @param lockfile
+	 * show and record IP
 	 */
-	/*
-	private static String changePortFromFile(String portpath,String lockfile){
-		//String newPort = "9050";
-		String newPort = "";
-
-		// assumes ports with 4 digits
-		// and that the file always has a content
-		while(newPort.length()<4) {
-			try{
-				newPort = readLineWithLock(portpath,lockfile);
-				if(newPort.length()<4){System.out.println("Waiting for an available tor port");Thread.sleep(1000);}
-			}catch(Exception e){e.printStackTrace();}
-		}
-
-		// set the new port
-		System.setProperty("socksProxyPort",newPort);
-		currentPort = Integer.parseInt(newPort);
-		Log.stdout("Current Port set to "+newPort);
-		return(newPort);
+	private static void showIP(){
+		try{
+			BufferedReader r = new BufferedReader(new InputStreamReader(new URL(ipurl).openConnection().getInputStream()));
+			String currentLine=r.readLine();
+			while(currentLine!= null){
+				Log.stdout("IP : "+currentLine);
+				currentIP = currentLine;
+				currentLine=r.readLine();
+			}
+		}catch(Exception e){}
 	}
-	*/
+
+
 
 	/**
 	 * Change port
@@ -240,6 +299,11 @@ public class TorPoolManager {
 		return(res);
 	}
 
+
+
+
+
+
 	/*
 	// FIXME function not used ?
 	private static void removeInFileWithLock(String s,String file,String lock){
@@ -285,28 +349,20 @@ public class TorPoolManager {
 	// Test functions
 
 	private static void testRemotePool(){
-		try{setupTorPoolConnexion(true);
+		try{setupTorPoolConnexion(true,mongoMode);
 
-		showIP();
-
-		while(true){
-			Thread.sleep(10000);
-			Log.stdout("TEST : Switching port... ");
-			switchPort(true);
 			showIP();
-		}
+
+			while(true){
+				Thread.sleep(10000);
+				Log.stdout("TEST : Switching port... ");
+				switchPort(true);
+				showIP();
+			}
 		}catch(Exception e){e.printStackTrace();}
 	}
 
-	private static void showIP(){
-		try{
-			BufferedReader r = new BufferedReader(new InputStreamReader(new URL("http://ipecho.net/plain").openConnection().getInputStream()));
-			String currentLine=r.readLine();
-			while(currentLine!= null){Log.stdout(currentLine);currentLine=r.readLine();}
-		}catch(Exception e){
-			//e.printStackTrace();
-		}
-	}
+
 
 
 	public static void main(String[] args){

@@ -48,13 +48,20 @@ public class TorThread extends Thread {
 		TorPool.available_ports.remove(new Integer(port));
 		running=true;
 		System.out.println("Starting new TorThread on port "+port);
+
+		/*this.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+			public void uncaughtException(Thread th, Throwable ex) {
+				System.out.println("Uncaught exception: " + ex);
+			}
+		});*/
 	}
     
 	
 	/**
 	 * Run the thread : launch shell command
 	 */
-	public void run(){
+	public void run() {
+
 		try{
 			try{
 				new File(".tor_tmp/torpid"+port).delete();
@@ -102,6 +109,8 @@ public class TorThread extends Thread {
 			
 		}catch(Exception e){
 			e.printStackTrace();
+			//while(true){e.printStackTrace();}
+			//throw new RuntimeException();
 		}
 	}
 
@@ -110,10 +119,12 @@ public class TorThread extends Thread {
 	 * Clean stop of the thread.
 	 * @param withNew should a replacing thread be launched
 	 */
-	public void cleanStop(boolean withNew){
+	public void cleanStop(boolean withNew) {
+
 		try{
 			// running should already be at false
 			running=false;
+
 			try{
 				//delete stopping signal
 				try{(new File(".tor_tmp/kill"+port)).delete();}catch(Exception e){}
@@ -129,14 +140,16 @@ public class TorThread extends Thread {
 			}catch(Exception e){e.printStackTrace();}
 
 			//put port again in list of available ports
-			TorPool.available_ports.put(new Integer(port), new Integer(port));
-			TorPool.used_ports.remove(new Integer(port));
+			TorPool.available_ports.put(new Integer(port),new Integer(port));
+			if(TorPool.used_ports.containsKey(new Integer(port))) {TorPool.used_ports.remove(new Integer(port));}
 
-			// remove in port file with lock
-			// should be already done by the API
-			removeInFileWithLock(new Integer(port).toString(),".tor_tmp/ports",".tor_tmp/lock");
-			
-			Thread.sleep(500);
+			if(Context.getMongoMode()) {
+				MongoConnection.deletePortInMongo(new Integer(port).toString());
+			}else {
+				removeInFileWithLock(new Integer(port).toString(),".tor_tmp/ports",".tor_tmp/lock");
+			}
+
+			try{Thread.sleep(500);}catch(Exception e){}
 			
 			//launch a new thread to replace this one if required
 			if(withNew){
@@ -145,6 +158,7 @@ public class TorThread extends Thread {
 
 		}catch(Exception e){
 			e.printStackTrace();
+			//throw new RuntimeException();
 		}
 	}
 

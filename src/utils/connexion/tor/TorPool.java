@@ -55,7 +55,7 @@ public class TorPool {
 
 
 	/**
-	 * Initialize the pool of tor connexion used to avoid ggl blocking.
+	 * Initialize the pool of tor connexion
 	 */
 	/*public static void setupConnectionPool(int nPorts,boolean v){
 		verbose=v;
@@ -115,9 +115,6 @@ public class TorPool {
 		try{
 			TorThread t = new TorThread();
 			torthreads.addLast(t);
-
-			// registration is done at confirmed setup !
-			//registerThread(t);
 
 			if(withStart) {
 				t.start();
@@ -193,11 +190,14 @@ public class TorPool {
 	 *    [TODO : check if running tor]
 	 */
 	public static void main(String[] args){
-		if(args.length != 1 && args.length != 2){System.out.println("Usage : args[0] = number of threads [; args[1] = starting Port ]");}
+		if(args.length != 1 && args.length != 2 && args.length != 3){
+			System.out.println("Usage : java -jar torpool.jar $NUMBER_OF_THREADS [$STARTING_PORT [--mongo]]");
+		}
 		else{
 			try{
 				int startingPort = 9050;
 				if(args.length == 2){startingPort = Integer.parseInt(args[1]);}
+				if(args.length == 3){Context.setMongoMode(true);}
 
 				// configure application shutdown
 				// TODO : Does not work with interrupted signal !
