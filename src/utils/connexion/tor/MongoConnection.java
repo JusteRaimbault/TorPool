@@ -17,6 +17,8 @@ public class MongoConnection {
         try {
             mongoClient = new MongoClient( host , port );
             mongoDatabase = mongoClient.getDatabase(db);
+            // collection dropping done systematically == one torpool max on the same server, or at least on same connection (can be changed)
+            mongoDatabase.getCollection(Context.mongoDBCollection).drop();
         } catch(Exception e){
             System.out.println("No mongo connection possible : ");
             e.printStackTrace();
@@ -37,7 +39,6 @@ public class MongoConnection {
     }
 
     public static String getPortFromMongo(boolean exclusivity){
-        initMongo();
         MongoCollection<Document> collection = mongoDatabase.getCollection(Context.mongoDBCollection);
         String res = "";
         if(exclusivity){
@@ -50,26 +51,21 @@ public class MongoConnection {
                 if(d.containsKey("port")){res = d.getString("port");}
             }
         }
-        closeMongo();
         return(res);
     }
 
     public static void deletePortInMongo(String port){
-        initMongo();
         MongoCollection<Document> collection = mongoDatabase.getCollection(Context.mongoDBCollection);
         collection.findOneAndDelete(eq("port",port));
-        closeMongo();
     }
 
     public static void writePortInMongo(String port){
-        initMongo();
         MongoCollection<Document> collection = mongoDatabase.getCollection(Context.mongoDBCollection);
         // write only if not here ? => it shouldnt be anyway
         FindIterable fi = collection.find(eq("port",port));
         if(!fi.iterator().hasNext()){
             collection.insertOne(new Document("port",port));
         }
-        closeMongo();
     }
 
 

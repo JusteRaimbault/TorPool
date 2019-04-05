@@ -206,11 +206,15 @@ public class TorPool {
 			            public void run() {
 			        	System.out.println("Exiting cleanly...");
 			        	stopPool();
+			        	MongoConnection.closeMongo();
 			            }
 			    });
 
 
 				int threadNumber = Integer.parseInt(args[0]);
+
+				if(Context.getMongoMode()){MongoConnection.initMongo();}
+
 				initPool(startingPort, startingPort+threadNumber, threadNumber);
 			    runPool();
 
