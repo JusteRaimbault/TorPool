@@ -203,11 +203,13 @@ public class TorPool {
 				// TODO : Does not work with interrupted signal !
 				Runtime.getRuntime().addShutdownHook(new Thread() {
 			        @Override
-			            public void run() {
+					public void run() {
 			        	System.out.println("Exiting cleanly...");
 			        	stopPool();
-			        	MongoConnection.closeMongo();
-			            }
+			        	if(Context.getMongoMode()) {
+							MongoConnection.closeMongo();
+						}
+			        }
 			    });
 
 
