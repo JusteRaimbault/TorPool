@@ -87,33 +87,37 @@ class TorPoolManager():
         print('Proxy address : socks5://127.0.0.1:'+str(self.port))
         return({'http':'socks5://127.0.0.1:'+str(self.port)})
 
-    #'
-    #' Switch the port
-    #'
-    def switchPort(self,portExclusivity):
-        print('Switching port from port '+str(self.port))
+        #'
+        #' Switch the port
+        #'
+        def switchPort(self,portExclusivity):
+            if not Path('.tor_tmp').exists():
+                print('No running torpool here')
+            else:
+                print('Switching port from port '+str(self.port))
 
-        if self.port != 0:
-            print('Killing task for port '+str(self.port))
-            killsignal = Path('.tor_tmp/kill'+self.port)
-            killsignal.touch()
+                if self.port != 0:
+                    print('Killing task for port '+str(self.port))
+                    killsignal = Path('.tor_tmp/kill'+self.port)
+                    killsignal.touch()
 
-        portfile = '.tor_tmp/ports'
-        lockfile = '.tor_tmp/lock'
-        newPort = ""
-        while len(newPort)<4:
-            if portExclusivity:
-                newPort=TorPoolManager.readAndRemoveLineWithLock(portfile,lockfile)
-            else :
-                newPort=TorPoolManager.readLineWithLock(portfile,lockfile)
-            #print(newPort)
-        print('Switching to new port: '+newPort)
-        self.port = newPort.replace('\n','').replace('\r','')
+                portfile = '.tor_tmp/ports'
+                lockfile = '.tor_tmp/lock'
+                newPort = ""
+                while len(newPort)<4:
+                    if portExclusivity:
+                        newPort=TorPoolManager.readAndRemoveLineWithLock(portfile,lockfile)
+                    else :
+                        newPort=TorPoolManager.readLineWithLock(portfile,lockfile)
+                    #print(newPort)
+                print('Switching to new port: '+newPort)
+                self.port = newPort.replace('\n','').replace('\r','')
 
-        # FIXME : rq : if there is no port exclusivity, process can be killed by an other ?
-        # should always use with exclusivity for now
-        #if portExclusivity:
-        #    TorPoolManager.removeInFileWithLock(newPort,portfile,lockfile)
+                # FIXME : rq : if there is no port exclusivity, process can be killed by an other ?
+                # should always use with exclusivity for now
+                #if portExclusivity:
+                #    TorPoolManager.removeInFileWithLock(newPort,portfile,lockfile)
+
 
     #'
     #' Release the current port (in the c ase of an exclusive use), by switching without exclusivity
